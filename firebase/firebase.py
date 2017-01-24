@@ -5,6 +5,7 @@ except ImportError:
     from urllib import parse as urlparse
 
 import json
+from oauth2client.client import GoogleCredentials
 
 from .firebase_token_generator import FirebaseTokenGenerator
 from .decorators import http_connection
@@ -225,10 +226,18 @@ class FirebaseApplication(object):
     NAME_EXTENSION = '.json'
     URL_SEPERATOR = '/'
 
-    def __init__(self, dsn, authentication=None):
+    def __init__(self, dsn, authentication=None, google_crendentials=None, scopes=None):
         assert dsn.startswith('https://'), 'DSN must be a secure URL'
         self.dsn = dsn
         self.authentication = authentication
+        if google_crendentials is not None and isinstance(google_crendentials, GoogleCredentials):
+            if scopes is None:
+                self.credentials = google_crendentials
+            else:
+                self.credentials = google_crendentials.create_scoped(scopes=scopes)
+        else:
+            self.credentials = None
+
 
     def _build_endpoint_url(self, url, name=None):
         """
@@ -256,9 +265,15 @@ class FirebaseApplication(object):
         If auth instance is not provided to this class, this method simply
         returns without doing anything.
         """
+
         if self.authentication:
             user = self.authentication.get_user()
             params.update({'auth': user.firebase_auth_token})
+            headers.update(self.authentication.authenticator.HEADERS)
+
+        elif self.crendentials:
+            auth_token = self.scoped.get_access_token()
+            params.update({'auth': auth_token})
             headers.update(self.authentication.authenticator.HEADERS)
 
     @http_connection(60)
