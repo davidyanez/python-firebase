@@ -271,10 +271,9 @@ class FirebaseApplication(object):
             params.update({'auth': user.firebase_auth_token})
             headers.update(self.authentication.authenticator.HEADERS)
 
-        elif self.crendentials:
-            auth_token = self.scoped.get_access_token()
-            params.update({'auth': auth_token})
-            headers.update(self.authentication.authenticator.HEADERS)
+        elif self.credentials:
+            auth_token = self.credentials.get_access_token()
+            params.update({'access_token': auth_token.access_token})
 
     @http_connection(60)
     def get(self, url, name, params=None, headers=None, connection=None):
