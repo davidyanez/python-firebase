@@ -6,6 +6,7 @@ except ImportError:
 
 import json
 from oauth2client.client import GoogleCredentials
+from oauth2client.service_account import ServiceAccountCredentials
 
 from .firebase_token_generator import FirebaseTokenGenerator
 from .decorators import http_connection
@@ -226,17 +227,22 @@ class FirebaseApplication(object):
     NAME_EXTENSION = '.json'
     URL_SEPERATOR = '/'
 
-    def __init__(self, dsn, authentication=None, google_crendentials=None, scopes=None):
+    def __init__(self, dsn, authentication=None, service_account_file=None, scopes=None):
         assert dsn.startswith('https://'), 'DSN must be a secure URL'
         self.dsn = dsn
         self.authentication = authentication
-        if google_crendentials is not None and isinstance(google_crendentials, GoogleCredentials):
-            if scopes is None:
-                self.credentials = google_crendentials
-            else:
-                self.credentials = google_crendentials.create_scoped(scopes=scopes)
-        else:
-            self.credentials = None
+
+        self.credentials = None
+        if service_account_file is not None:
+
+            if not isinstance(scopes, list):
+                scopes = [
+                    'https://www.googleapis.com/auth/firebase.database',
+                    'https://www.googleapis.com/auth/userinfo.email',
+                    "https://www.googleapis.com/auth/cloud-platform"
+                ]
+            if service_account_file[-4:] == 'json':
+                self.credentials = ServiceAccountCredentials.from_json_keyfile_name(service_account_file, scopes=scopes)
 
 
     def _build_endpoint_url(self, url, name=None):
@@ -273,7 +279,11 @@ class FirebaseApplication(object):
 
         elif self.credentials:
             auth_token = self.credentials.get_access_token()
-            params.update({'access_token': auth_token.access_token})
+            headers.update({"Authorization": "Bearer {}".format(auth_token.access_token),
+                             "content_type": "application/json; charset=UTF-8"
+                            })
+
+            # params.update({'access_token': auth_token.access_token})
 
     @http_connection(60)
     def get(self, url, name, params=None, headers=None, connection=None):
