@@ -227,13 +227,13 @@ class FirebaseApplication(object):
     NAME_EXTENSION = '.json'
     URL_SEPERATOR = '/'
 
-    def __init__(self, dsn, authentication=None, service_account_file=None, scopes=None):
+    def __init__(self, dsn, authentication=None, service_account=None, scopes=None):
         assert dsn.startswith('https://'), 'DSN must be a secure URL'
         self.dsn = dsn
         self.authentication = authentication
 
         self.credentials = None
-        if service_account_file is not None:
+        if isinstance(service_account, dict):
 
             if not isinstance(scopes, list):
                 scopes = [
@@ -241,8 +241,8 @@ class FirebaseApplication(object):
                     'https://www.googleapis.com/auth/userinfo.email',
                     "https://www.googleapis.com/auth/cloud-platform"
                 ]
-            if service_account_file[-4:] == 'json':
-                self.credentials = ServiceAccountCredentials.from_json_keyfile_name(service_account_file, scopes=scopes)
+
+            self.credentials = ServiceAccountCredentials.from_json_keyfile_dict(service_account, scopes=scopes)
 
 
     def _build_endpoint_url(self, url, name=None):
